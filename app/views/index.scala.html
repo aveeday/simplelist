@@ -1,10 +1,11 @@
-@()
+@(form: Form[MessageForm.Data], postUrl: Call)(implicit request: MessagesRequestHeader)
 
 @main("Add new message", "index") {
   <div class="container">
-    <form>
+    <form action="/new" method="post">
+      @helper.CSRF.formField
       <textarea class="form-control mb-2" name="name" rows="8" cols="80"></textarea>
-      <button class="btn btn-primary" type="button" name="button">Submit</button>
+      <input class="btn btn-primary" type="submit" name="button">
     </form>
   </div>
 }
