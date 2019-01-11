@@ -1,5 +1,10 @@
 @()
 
-@main("Welcome to Play") {
-  <h1>Welcome to Play!</h1>
+@main("Add new message", "index") {
+  <div class="container">
+    <form>
+      <textarea class="form-control mb-2" name="name" rows="8" cols="80"></textarea>
+      <button class="btn btn-primary" type="button" name="button">Submit</button>
+    </form>
+  </div>
 }
