@@ -6,20 +6,19 @@ import javax.inject._
 import play.api._
 import play.api.mvc._
 
+import scala.concurrent.{ExecutionContext, Future}
+
 /**
  * This controller creates an `Action` to handle HTTP requests to the
  * application's home page.
  */
 @Singleton
-class HomeController @Inject()(cc: MessagesControllerComponents) extends MessagesAbstractController(cc) {
+class HomeController @Inject()(repo: MessageRepository,
+                                cc: MessagesControllerComponents
+                              )(implicit ec: ExecutionContext)
+  extends MessagesAbstractController(cc) {
 
   import MessageForm._
-
-  private val messages = scala.collection.mutable.ArrayBuffer(
-    Message("Cras justo odio"),
-    Message("Dapibus ac facilisis in"),
-    Message("Morbi leo risus")
-  )
 
   // The URL to the widget.  You can call this directly from the template, but it
   // can be more convenient to leave the template completely stateless i.e. all
@@ -37,27 +36,35 @@ class HomeController @Inject()(cc: MessagesControllerComponents) extends Message
     Ok(views.html.index(form, postUrl))
   }
 
-  def list() = Action { implicit request: Request[AnyContent] =>
-    Ok(views.html.list(messages))
+  def list() = Action.async { implicit request: Request[AnyContent] =>
+    // Ok(views.html.list(repo.list()))
+    repo.list().map { message =>
+      Ok(views.html.list(message))
+    }
   }
 
-  // This will be the action that handles our form post
-  def createMessage = Action { implicit request: MessagesRequest[AnyContent] =>
-    val errorFunction = { formWithErrors: Form[Data] =>
-      // This is the bad case, where the form had validation errors.
-      // Let's show the user the form again, with the errors highlighted.
-      // Note how we pass the form with errors to the template.
-      BadRequest(views.html.index(formWithErrors, postUrl))
-    }
-
-    val successFunction = { data: Data =>
-      // This is the good case, where the form was successfully parsed as a Data object.
-      val message = Message(text = data.text)
-      messages.append(message)
-      Redirect(routes.HomeController.list()).flashing("info" -> "Widget added!")
-    }
-
-    val formValidationResult = form.bindFromRequest
-    formValidationResult.fold(errorFunction, successFunction)
+  /**
+   * The add message action.
+   *
+   * This is asynchronous, since we're invoking the asynchronous methods on MessageRepository.
+   */
+  def createMessage = Action.async { implicit request =>
+    // Bind the form first, then fold the result, passing a function to handle errors, and a function to handle succes.
+    form.bindFromRequest.fold(
+      // The error function. We return the index page with the error form, which will render the errors.
+      // We also wrap the result in a successful future, since this action is synchronous, but we're required to return
+      // a future because the person creation function returns a future.
+      errorForm => {
+        Future.successful(Ok(views.html.index(errorForm, postUrl)))
+      },
+      // There were no errors in the from, so create the person.
+      message => {
+        repo.create(message.text).map { _ =>
+          // If successful, we simply redirect to the index page.
+          Redirect(routes.HomeController.list).flashing("success" -> "message.created")
+        }
+      }
+    )
   }
+
 }

@@ -1,5 +1,7 @@
 package models
 
+import play.api.libs.json._
+
 /**
  * Presentation object used for displaying data in a template.
  *
@@ -7,4 +9,8 @@ package models
  * which are used for reads, distinct from the form processing DTO,
  * which are used for writes.
  */
-case class Message(text: String)
+case class Message(id: Long, text: String)
+
+object Message {
+  implicit val messageFormat = Json.format[Message]
+}
