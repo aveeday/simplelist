@@ -1,6 +1,6 @@
 package controllers
 
-import models.Message
+import models._
 import play.api.data._
 import javax.inject._
 import play.api._
